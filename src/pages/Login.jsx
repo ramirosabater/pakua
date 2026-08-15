@@ -1,8 +1,11 @@
 import { useState } from 'react'
+import { Navigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
+import { useAuth } from '../context/AuthContext'
 import OctagonMark from '../components/OctagonMark'
 
 export default function Login() {
+  const { session, profile, loading } = useAuth()
   const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -31,6 +34,11 @@ export default function Login() {
     } finally {
       setBusy(false)
     }
+  }
+
+  // Si ya hay sesión iniciada, ir al panel según el rol.
+  if (!loading && session) {
+    return <Navigate to={profile?.role === 'alumno' ? '/alumno' : '/profesor'} replace />
   }
 
   return (
