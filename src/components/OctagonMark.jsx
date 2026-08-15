@@ -8,11 +8,11 @@ export default function OctagonMark({ size = 32 }) {
   const poly = pts.map(p => p.map(n => n.toFixed(1)).join(',')).join(' ')
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true">
-      <polygon points={poly} fill="none" stroke="var(--brass)" strokeWidth="3" />
+      <polygon points={poly} fill="none" stroke="var(--red)" strokeWidth="3" />
       {pts.map((p, i) => (
-        <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="var(--jade)" strokeWidth="1.4" opacity="0.55" />
+        <line key={i} x1={cx} y1={cy} x2={p[0]} y2={p[1]} stroke="var(--ink)" strokeWidth="1.4" opacity="0.5" />
       ))}
-      <circle cx={cx} cy={cy} r="5.5" fill="var(--brass)" />
+      <circle cx={cx} cy={cy} r="5.5" fill="var(--red)" />
     </svg>
   )
 }

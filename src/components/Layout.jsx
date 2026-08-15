@@ -12,7 +12,7 @@ export default function Layout({ nav }) {
         <div className="brand">
           <OctagonMark size={30} />
           <div>
-            <div className="brand-name">Academia de Pakua</div>
+            <div className="brand-name">Pakua Liga Sudamericana</div>
             <div className="brand-sub">{ROLE_LABEL[profile?.role] ?? ''}</div>
           </div>
         </div>

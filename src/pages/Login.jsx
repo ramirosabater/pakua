@@ -2,7 +2,6 @@ import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
-import OctagonMark from '../components/OctagonMark'
 
 export default function Login() {
   const { session, profile, loading } = useAuth()
@@ -24,17 +23,19 @@ export default function Login() {
     }
   }
 
-  // Si ya hay sesión iniciada, ir al panel según el rol.
+  // Si ya hay sesión iniciada, esperar el perfil y luego ir al panel según el rol.
   if (!loading && session) {
-    return <Navigate to={profile?.role === 'alumno' ? '/alumno' : '/profesor'} replace />
+    if (!profile) return <div className="center-screen">Cargando…</div>
+    return <Navigate to={profile.role === 'alumno' ? '/alumno' : '/profesor'} replace />
   }
 
   return (
     <div className="center-screen">
       <div className="auth-card">
         <div className="auth-head">
-          <OctagonMark size={52} />
-          <h1>Academia de Pakua</h1>
+          <img src="/logopakua.png" alt="Pakua Liga Sudamericana"
+            style={{ width: '100%', maxWidth: 240, borderRadius: 8, marginBottom: '0.4rem' }} />
+          <h1>Pakua Liga Sudamericana</h1>
           <p className="muted">Ingresá a tu cuenta</p>
         </div>
         <form onSubmit={submit} className="form">

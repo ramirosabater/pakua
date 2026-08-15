@@ -1,18 +1,24 @@
 /* ===========================================================
-   Academia de Pakua — tema "dojo al anochecer"
+   Pakua Liga Sudamericana — negro, blanco y rojo
    =========================================================== */
 :root {
-  --bg: #0F1417;
-  --surface: #171E23;
-  --surface-2: #1F282E;
-  --border: #2B353D;
-  --ink: #E9E6DD;
-  --muted: #8A949C;
-  --jade: #5BA890;
-  --jade-dim: #3E7D6B;
-  --brass: #C9A25C;
-  --brass-dim: #9A7B41;
-  --danger: #C86F5C;
+  --bg: #0E0E10;
+  --surface: #17171B;
+  --surface-2: #202026;
+  --border: #32323A;
+  --ink: #F2F0EA;
+  --muted: #9A9AA4;
+
+  --red: #E4141B;         /* rojo del logo (principal) */
+  --red-dim: #B20F15;
+  --jade: var(--red);     /* (compat) elementos de marca ahora en rojo */
+  --jade-dim: var(--red-dim);
+  --brass: var(--red);    /* (compat) elementos de marca ahora en rojo */
+  --brass-dim: var(--red-dim);
+  --danger: #E4141B;      /* rojo: borrar / rechazar / deuda */
+
+  --ok: #3FA66A;          /* verde: solo estados (presente, aprobado, al día) */
+  --warn: #D6A43C;        /* ámbar: solo pendiente / en plazo */
 
   --font-display: 'Archivo', system-ui, sans-serif;
   --font-body: 'IBM Plex Sans', system-ui, sans-serif;
@@ -116,7 +122,7 @@ input, select, textarea {
 textarea { resize: vertical; }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--jade);
-  box-shadow: 0 0 0 3px rgba(91, 168, 144, 0.18);
+  box-shadow: 0 0 0 3px rgba(228, 20, 27, 0.18);
 }
 input[type="file"] { padding: 0.4rem; color: var(--muted); }
 .checkbox, .switch { flex-direction: row; align-items: center; gap: 0.5rem; color: var(--ink); }
@@ -135,7 +141,7 @@ input[type="file"] { padding: 0.4rem; color: var(--muted); }
 .btn-primary { background: var(--jade); color: #0C1512; }
 .btn-ghost { background: transparent; border-color: var(--border); color: var(--muted); }
 .btn-sm { padding: 0.3rem 0.65rem; font-size: 0.8rem; }
-.btn-ok { background: var(--jade-dim); color: #0C1512; }
+.btn-ok { background: var(--ok); color: #0C1512; }
 .btn-off { background: transparent; border-color: var(--danger); color: var(--danger); }
 
 .link-btn {
@@ -147,8 +153,8 @@ input[type="file"] { padding: 0.4rem; color: var(--muted); }
 
 /* ---------- Avisos ---------- */
 .alert { border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.85rem; }
-.alert-ok { background: rgba(91,168,144,0.14); color: var(--jade); }
-.alert-warn { background: rgba(201,162,92,0.14); color: var(--brass); }
+.alert-ok { background: rgba(63,166,106,0.16); color: var(--ok); }
+.alert-warn { background: rgba(214,164,60,0.16); color: var(--warn); }
 .alert-error { background: rgba(200,111,92,0.14); color: var(--danger); }
 
 /* ---------- Selector de días (horario de clase) ---------- */
@@ -198,8 +204,8 @@ input[type="file"] { padding: 0.4rem; color: var(--muted); }
   display: inline-block; font-size: 0.72rem; font-weight: 600;
   padding: 0.14rem 0.6rem; border-radius: 999px; text-transform: capitalize;
 }
-.pill-ok { background: rgba(91,168,144,0.16); color: var(--jade); }
-.pill-warn { background: rgba(201,162,92,0.16); color: var(--brass); }
+.pill-ok { background: rgba(63,166,106,0.18); color: var(--ok); }
+.pill-warn { background: rgba(214,164,60,0.18); color: var(--warn); }
 .pill-off { background: rgba(200,111,92,0.16); color: var(--danger); }
 
 /* ---------- Lista de asistencia ---------- */
@@ -209,7 +215,7 @@ input[type="file"] { padding: 0.4rem; color: var(--muted); }
   padding: 0.6rem 0.2rem; border-bottom: 1px solid var(--border);
 }
 .switch { cursor: pointer; font-weight: 500; color: var(--danger); font-size: 0.85rem; }
-.switch.on { color: var(--jade); }
+.switch.on { color: var(--ok); }
 
 .inline-add { display: flex; gap: 0.5rem; align-items: end; margin-bottom: 0.6rem; }
 .inline-add select { max-width: 260px; }

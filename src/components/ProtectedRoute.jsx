@@ -5,6 +5,8 @@ export default function ProtectedRoute({ children, roles }) {
   const { session, profile, loading, signOut } = useAuth()
   if (loading) return <div className="center-screen">Cargando…</div>
   if (!session) return <Navigate to="/login" replace />
+  // La sesión ya existe pero el perfil (rol) puede tardar un instante en llegar.
+  if (!profile) return <div className="center-screen">Cargando…</div>
 
   // Cuenta dada de baja: bloquea el acceso sin borrar los datos.
   if (profile && profile.activo === false) {

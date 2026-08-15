@@ -15,7 +15,7 @@ function estadoCuota(estadoPago, diaDelMes) {
 
 function estiloFila(key) {
   if (key === 'deuda') return { borderLeft: '3px solid var(--danger)', background: 'rgba(200,111,92,0.10)', paddingLeft: '0.6rem' }
-  if (key === 'revision' || key === 'plazo') return { borderLeft: '3px solid var(--brass)', paddingLeft: '0.6rem' }
+  if (key === 'revision' || key === 'plazo') return { borderLeft: '3px solid var(--warn)', paddingLeft: '0.6rem' }
   return { borderLeft: '3px solid transparent', paddingLeft: '0.6rem' }
 }
 
