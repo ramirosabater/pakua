@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 
+const CLASE_VACIA = { nombre: '', horario: '', descripcion: '', profesor_id: '', requiere_informe: false }
+
 export default function Clases() {
   const { profile } = useAuth()
   const isAdmin = profile.role === 'admin'
@@ -10,11 +12,11 @@ export default function Clases() {
   const [alumnos, setAlumnos] = useState([])
   const [msg, setMsg] = useState(null)
 
-  const [nombre, setNombre] = useState('')
-  const [horario, setHorario] = useState('')
-  const [profesorId, setProfesorId] = useState('')
-  const [requiereInforme, setRequiereInforme] = useState(false)
+  // Formulario de alta/edición. editId = null => alta; con valor => edición.
+  const [form, setForm] = useState(CLASE_VACIA)
+  const [editId, setEditId] = useState(null)
 
+  // Gestión de inscripciones
   const [selClase, setSelClase] = useState('')
   const [inscriptos, setInscriptos] = useState([])
   const [addAlumno, setAddAlumno] = useState('')
@@ -32,16 +34,52 @@ export default function Clases() {
   }
   useEffect(() => { load() }, [])
 
-  async function crearClase(e) {
-    e.preventDefault(); setMsg(null)
-    const { error } = await supabase.from('clases').insert({
-      nombre, horario, profesor_id: profesorId || null, requiere_informe: requiereInforme,
+  function editar(c) {
+    setEditId(c.id)
+    setForm({
+      nombre: c.nombre ?? '',
+      horario: c.horario ?? '',
+      descripcion: c.descripcion ?? '',
+      profesor_id: c.profesor_id ?? '',
+      requiere_informe: !!c.requiere_informe,
     })
-    if (error) setMsg({ type: 'error', text: error.message })
-    else {
-      setNombre(''); setHorario(''); setProfesorId(''); setRequiereInforme(false)
-      load()
+    setMsg(null)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
+  function cancelar() {
+    setEditId(null)
+    setForm(CLASE_VACIA)
+    setMsg(null)
+  }
+
+  async function guardar(e) {
+    e.preventDefault(); setMsg(null)
+    const datos = {
+      nombre: form.nombre,
+      horario: form.horario || null,
+      descripcion: form.descripcion || null,
+      profesor_id: form.profesor_id || null,
+      requiere_informe: form.requiere_informe,
     }
+    const { error } = editId
+      ? await supabase.from('clases').update(datos).eq('id', editId)
+      : await supabase.from('clases').insert(datos)
+    if (error) { setMsg({ type: 'error', text: error.message }); return }
+    setMsg({ type: 'ok', text: editId ? 'Clase actualizada.' : 'Clase creada.' })
+    cancelar()
+    load()
+  }
+
+  async function borrar(c) {
+    const ok = window.confirm(
+      `¿Eliminar la clase "${c.nombre}"?\n\nSe borrarán también sus inscripciones y su asistencia. Esta acción no se puede deshacer.`
+    )
+    if (!ok) return
+    const { error } = await supabase.from('clases').delete().eq('id', c.id)
+    if (error) { setMsg({ type: 'error', text: error.message }); return }
+    if (selClase === c.id) { setSelClase(''); setInscriptos([]) }
+    load()
   }
 
   async function loadInscriptos(claseId) {
@@ -64,29 +102,41 @@ export default function Clases() {
   }
 
   const claseSel = clases.find(c => c.id === selClase)
+  const up = (campo, valor) => setForm(f => ({ ...f, [campo]: valor }))
 
   return (
     <div className="stack">
       {isAdmin && (
         <section className="card">
-          <h2>Nueva clase</h2>
-          <form onSubmit={crearClase} className="form">
+          <h2>{editId ? 'Editar clase' : 'Nueva clase'}</h2>
+          <form onSubmit={guardar} className="form">
             <div className="grid-2">
-              <label>Nombre<input value={nombre} onChange={e => setNombre(e.target.value)} required /></label>
-              <label>Horario<input value={horario} onChange={e => setHorario(e.target.value)} placeholder="Lun y Mié 19hs" /></label>
+              <label>Nombre
+                <input value={form.nombre} onChange={e => up('nombre', e.target.value)} required />
+              </label>
+              <label>Horario
+                <input value={form.horario} onChange={e => up('horario', e.target.value)} placeholder="Lun y Mié 19hs" />
+              </label>
             </div>
+            <label>Descripción
+              <input value={form.descripcion} onChange={e => up('descripcion', e.target.value)} placeholder="Opcional" />
+            </label>
             <label>Profesor a cargo
-              <select value={profesorId} onChange={e => setProfesorId(e.target.value)}>
+              <select value={form.profesor_id} onChange={e => up('profesor_id', e.target.value)}>
                 <option value="">Sin asignar</option>
                 {profesores.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
               </select>
             </label>
             <label className="checkbox">
-              <input type="checkbox" checked={requiereInforme} onChange={e => setRequiereInforme(e.target.checked)} />
+              <input type="checkbox" checked={form.requiere_informe}
+                onChange={e => up('requiere_informe', e.target.checked)} />
               Clase especial (requiere informe del alumno)
             </label>
             {msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
-            <button className="btn btn-primary">Crear clase</button>
+            <div className="row-actions">
+              <button className="btn btn-primary">{editId ? 'Guardar cambios' : 'Crear clase'}</button>
+              {editId && <button type="button" className="btn btn-ghost" onClick={cancelar}>Cancelar</button>}
+            </div>
           </form>
         </section>
       )}
@@ -95,20 +145,28 @@ export default function Clases() {
         <h2>Clases</h2>
         {clases.length === 0 && <p className="muted">No hay clases cargadas.</p>}
         {clases.length > 0 && (
-          <table className="table">
-            <thead><tr><th>Clase</th><th>Horario</th><th>Profesor</th><th>Especial</th><th></th></tr></thead>
-            <tbody>
-              {clases.map(c => (
-                <tr key={c.id}>
-                  <td>{c.nombre}</td>
-                  <td>{c.horario || '—'}</td>
-                  <td>{c.profesor?.full_name ?? '—'}</td>
-                  <td>{c.requiere_informe ? 'Sí' : 'No'}</td>
-                  <td><button className="link-btn" onClick={() => loadInscriptos(c.id)}>Inscriptos</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="table-wrap">
+            <table className="table">
+              <thead>
+                <tr><th>Clase</th><th>Horario</th><th>Profesor</th><th>Especial</th><th></th></tr>
+              </thead>
+              <tbody>
+                {clases.map(c => (
+                  <tr key={c.id}>
+                    <td>{c.nombre}</td>
+                    <td>{c.horario || '—'}</td>
+                    <td>{c.profesor?.full_name ?? '—'}</td>
+                    <td>{c.requiere_informe ? 'Sí' : 'No'}</td>
+                    <td className="row-actions">
+                      <button className="link-btn" onClick={() => loadInscriptos(c.id)}>Inscriptos</button>
+                      {isAdmin && <button className="link-btn" onClick={() => editar(c)}>Editar</button>}
+                      {isAdmin && <button className="link-btn danger" onClick={() => borrar(c)}>Eliminar</button>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </section>
 

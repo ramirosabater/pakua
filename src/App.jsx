@@ -12,6 +12,7 @@ import TomarAsistencia from './pages/teacher/TomarAsistencia'
 import VerInformes from './pages/teacher/VerInformes'
 import RevisarPagos from './pages/teacher/RevisarPagos'
 import Clases from './pages/teacher/Clases'
+import Usuarios from './pages/teacher/Usuarios'
 
 function HomeRedirect() {
   const { profile, loading } = useAuth()
@@ -26,12 +27,18 @@ const studentNav = [
   { to: '/alumno/pagos', label: 'Mis pagos' },
 ]
 
-const teacherNav = [
-  { to: '/profesor', label: 'Asistencia' },
-  { to: '/profesor/informes', label: 'Informes' },
-  { to: '/profesor/pagos', label: 'Pagos' },
-  { to: '/profesor/clases', label: 'Clases' },
-]
+// El menú de profesor/dirección: la pestaña Usuarios se muestra solo al admin.
+function TeacherLayout() {
+  const { profile } = useAuth()
+  const nav = [
+    { to: '/profesor', label: 'Asistencia' },
+    { to: '/profesor/informes', label: 'Informes' },
+    { to: '/profesor/pagos', label: 'Pagos' },
+    { to: '/profesor/clases', label: 'Clases' },
+  ]
+  if (profile?.role === 'admin') nav.push({ to: '/profesor/usuarios', label: 'Usuarios' })
+  return <Layout nav={nav} />
+}
 
 export default function App() {
   return (
@@ -48,12 +55,15 @@ export default function App() {
       </Route>
 
       <Route path="/profesor" element={
-        <ProtectedRoute roles={['profesor', 'admin']}><Layout nav={teacherNav} /></ProtectedRoute>
+        <ProtectedRoute roles={['profesor', 'admin']}><TeacherLayout /></ProtectedRoute>
       }>
         <Route index element={<TomarAsistencia />} />
         <Route path="informes" element={<VerInformes />} />
         <Route path="pagos" element={<RevisarPagos />} />
         <Route path="clases" element={<Clases />} />
+        <Route path="usuarios" element={
+          <ProtectedRoute roles={['admin']}><Usuarios /></ProtectedRoute>
+        } />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />
