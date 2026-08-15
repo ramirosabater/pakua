@@ -6,10 +6,8 @@ import OctagonMark from '../components/OctagonMark'
 
 export default function Login() {
   const { session, profile, loading } = useAuth()
-  const [mode, setMode] = useState('login')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [fullName, setFullName] = useState('')
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
 
@@ -17,18 +15,8 @@ export default function Login() {
     e.preventDefault()
     setBusy(true); setMsg(null)
     try {
-      if (mode === 'login') {
-        const { error } = await supabase.auth.signInWithPassword({ email, password })
-        if (error) throw error
-      } else {
-        const { error } = await supabase.auth.signUp({
-          email, password,
-          options: { data: { full_name: fullName } },
-        })
-        if (error) throw error
-        setMsg({ type: 'ok', text: 'Cuenta creada. Ya podés ingresar.' })
-        setMode('login')
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) throw error
     } catch (err) {
       setMsg({ type: 'error', text: err.message })
     } finally {
@@ -47,14 +35,9 @@ export default function Login() {
         <div className="auth-head">
           <OctagonMark size={52} />
           <h1>Academia de Pakua</h1>
-          <p className="muted">{mode === 'login' ? 'Ingresá a tu cuenta' : 'Creá tu cuenta de alumno'}</p>
+          <p className="muted">Ingresá a tu cuenta</p>
         </div>
         <form onSubmit={submit} className="form">
-          {mode === 'signup' && (
-            <label>Nombre y apellido
-              <input value={fullName} onChange={e => setFullName(e.target.value)} required />
-            </label>
-          )}
           <label>Email
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
           </label>
@@ -63,12 +46,10 @@ export default function Login() {
           </label>
           {msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
           <button className="btn btn-primary" disabled={busy}>
-            {busy ? '…' : mode === 'login' ? 'Ingresar' : 'Crear cuenta'}
+            {busy ? '…' : 'Ingresar'}
           </button>
         </form>
-        <button className="link-btn center" onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setMsg(null) }}>
-          {mode === 'login' ? '¿No tenés cuenta? Registrate' : '¿Ya tenés cuenta? Ingresá'}
-        </button>
+        <p className="hint center">¿No tenés cuenta? Pedile el alta a la dirección de la academia.</p>
       </div>
     </div>
   )

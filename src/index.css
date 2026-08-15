@@ -148,7 +148,21 @@ input[type="file"] { padding: 0.4rem; color: var(--muted); }
 /* ---------- Avisos ---------- */
 .alert { border-radius: 8px; padding: 0.6rem 0.8rem; font-size: 0.85rem; }
 .alert-ok { background: rgba(91,168,144,0.14); color: var(--jade); }
+.alert-warn { background: rgba(201,162,92,0.14); color: var(--brass); }
 .alert-error { background: rgba(200,111,92,0.14); color: var(--danger); }
+
+/* ---------- Selector de días (horario de clase) ---------- */
+.field-label { display: block; font-size: 0.82rem; color: var(--muted); margin-bottom: 0.35rem; }
+.dias-row { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+.dia-chip {
+  font: inherit; font-size: 0.85rem; cursor: pointer;
+  padding: 0.35rem 0.7rem; border-radius: 999px;
+  border: 1px solid var(--border); background: var(--bg); color: var(--muted);
+}
+.dia-chip.on { background: var(--jade); color: #0C1512; border-color: var(--jade); font-weight: 600; }
+
+/* Nombre del alumno + etiqueta de cuota en el roster */
+.roster-name { display: inline-flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
 
 /* ---------- Listas (informes) ---------- */
 .list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.85rem; }
@@ -211,3 +225,27 @@ input[type="file"] { padding: 0.4rem; color: var(--muted); }
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important; }
 }
+
+/* ---------- Calendario mensual ---------- */
+.cal-nav { display: flex; align-items: center; justify-content: space-between; margin: 0.4rem 0 0.9rem; }
+.cal-title { font-family: var(--font-display); font-weight: 700; text-transform: capitalize; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; }
+.cal-head {
+  font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--muted); text-align: center; padding: 0.2rem 0;
+}
+.cal-cell {
+  aspect-ratio: 1; border: 1px solid var(--border); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.85rem; color: var(--muted); background: var(--surface-2);
+}
+.cal-cell.empty { border: none; background: transparent; }
+.cal-cell.clase { background: var(--jade); color: #0C1512; font-weight: 600; cursor: pointer; border-color: var(--jade); }
+.cal-cell.clase:hover { filter: brightness(1.1); }
+.cal-cell.hoy { outline: 2px solid var(--brass); outline-offset: -2px; }
+
+/* ---------- Tarjetas de estadísticas (cobranzas) ---------- */
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 0.8rem; margin: 0.6rem 0 1rem; }
+.stat { background: var(--surface-2); border: 1px solid var(--border); border-radius: 8px; padding: 0.85rem 1rem; }
+.stat-num { font-family: var(--font-mono); font-size: 1.35rem; color: var(--ink); }
+.stat-lbl { font-size: 0.72rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.15rem; }

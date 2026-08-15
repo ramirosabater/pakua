@@ -2,7 +2,20 @@ import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 
-const CLASE_VACIA = { nombre: '', horario: '', descripcion: '', profesor_id: '', requiere_informe: false }
+// Convención de días igual a JS getDay(): 0=Dom ... 6=Sáb
+const DIAS = [
+  { n: 1, lbl: 'Lun' }, { n: 2, lbl: 'Mar' }, { n: 3, lbl: 'Mié' },
+  { n: 4, lbl: 'Jue' }, { n: 5, lbl: 'Vie' }, { n: 6, lbl: 'Sáb' }, { n: 0, lbl: 'Dom' },
+]
+const LBL = Object.fromEntries(DIAS.map(d => [d.n, d.lbl]))
+
+function horarioTexto(dias, hora) {
+  const ds = DIAS.filter(d => dias.includes(d.n)).map(d => d.lbl)
+  if (ds.length === 0 && !hora) return null
+  return (ds.join(', ') + (hora ? ' ' + hora : '')).trim()
+}
+
+const FORM_VACIO = { nombre: '', descripcion: '', profesor_id: '', requiere_informe: false, dias: [], hora: '' }
 
 export default function Clases() {
   const { profile } = useAuth()
@@ -12,11 +25,9 @@ export default function Clases() {
   const [alumnos, setAlumnos] = useState([])
   const [msg, setMsg] = useState(null)
 
-  // Formulario de alta/edición. editId = null => alta; con valor => edición.
-  const [form, setForm] = useState(CLASE_VACIA)
+  const [form, setForm] = useState(FORM_VACIO)
   const [editId, setEditId] = useState(null)
 
-  // Gestión de inscripciones
   const [selClase, setSelClase] = useState('')
   const [inscriptos, setInscriptos] = useState([])
   const [addAlumno, setAddAlumno] = useState('')
@@ -29,51 +40,51 @@ export default function Clases() {
       .select('id, full_name').in('role', ['profesor', 'admin'])
     setProfesores(profs ?? [])
     const { data: al } = await supabase.from('profiles')
-      .select('id, full_name').eq('role', 'alumno')
+      .select('id, full_name').eq('role', 'alumno').eq('activo', true)
     setAlumnos(al ?? [])
   }
   useEffect(() => { load() }, [])
 
+  const up = (campo, valor) => setForm(f => ({ ...f, [campo]: valor }))
+  const toggleDia = n => setForm(f => ({
+    ...f, dias: f.dias.includes(n) ? f.dias.filter(x => x !== n) : [...f.dias, n],
+  }))
+
   function editar(c) {
     setEditId(c.id)
     setForm({
-      nombre: c.nombre ?? '',
-      horario: c.horario ?? '',
-      descripcion: c.descripcion ?? '',
-      profesor_id: c.profesor_id ?? '',
-      requiere_informe: !!c.requiere_informe,
+      nombre: c.nombre ?? '', descripcion: c.descripcion ?? '',
+      profesor_id: c.profesor_id ?? '', requiere_informe: !!c.requiere_informe,
+      dias: c.dias ?? [], hora: c.hora ?? '',
     })
     setMsg(null)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function cancelar() {
-    setEditId(null)
-    setForm(CLASE_VACIA)
-    setMsg(null)
-  }
+  function cancelar() { setEditId(null); setForm(FORM_VACIO); setMsg(null) }
 
   async function guardar(e) {
     e.preventDefault(); setMsg(null)
     const datos = {
       nombre: form.nombre,
-      horario: form.horario || null,
       descripcion: form.descripcion || null,
       profesor_id: form.profesor_id || null,
       requiere_informe: form.requiere_informe,
+      dias: form.dias,
+      hora: form.hora || null,
+      horario: horarioTexto(form.dias, form.hora),
     }
     const { error } = editId
       ? await supabase.from('clases').update(datos).eq('id', editId)
       : await supabase.from('clases').insert(datos)
     if (error) { setMsg({ type: 'error', text: error.message }); return }
     setMsg({ type: 'ok', text: editId ? 'Clase actualizada.' : 'Clase creada.' })
-    cancelar()
-    load()
+    cancelar(); load()
   }
 
   async function borrar(c) {
     const ok = window.confirm(
-      `¿Eliminar la clase "${c.nombre}"?\n\nSe borrarán también sus inscripciones y su asistencia. Esta acción no se puede deshacer.`
+      `¿Eliminar la clase "${c.nombre}"?\n\nSe borrarán también sus inscripciones y su asistencia. No se puede deshacer.`
     )
     if (!ok) return
     const { error } = await supabase.from('clases').delete().eq('id', c.id)
@@ -102,7 +113,6 @@ export default function Clases() {
   }
 
   const claseSel = clases.find(c => c.id === selClase)
-  const up = (campo, valor) => setForm(f => ({ ...f, [campo]: valor }))
 
   return (
     <div className="stack">
@@ -110,14 +120,9 @@ export default function Clases() {
         <section className="card">
           <h2>{editId ? 'Editar clase' : 'Nueva clase'}</h2>
           <form onSubmit={guardar} className="form">
-            <div className="grid-2">
-              <label>Nombre
-                <input value={form.nombre} onChange={e => up('nombre', e.target.value)} required />
-              </label>
-              <label>Horario
-                <input value={form.horario} onChange={e => up('horario', e.target.value)} placeholder="Lun y Mié 19hs" />
-              </label>
-            </div>
+            <label>Nombre
+              <input value={form.nombre} onChange={e => up('nombre', e.target.value)} required />
+            </label>
             <label>Descripción
               <input value={form.descripcion} onChange={e => up('descripcion', e.target.value)} placeholder="Opcional" />
             </label>
@@ -127,6 +132,23 @@ export default function Clases() {
                 {profesores.map(p => <option key={p.id} value={p.id}>{p.full_name}</option>)}
               </select>
             </label>
+
+            <div>
+              <span className="field-label">Días de clase</span>
+              <div className="dias-row">
+                {DIAS.map(d => (
+                  <button type="button" key={d.n}
+                    className={'dia-chip' + (form.dias.includes(d.n) ? ' on' : '')}
+                    onClick={() => toggleDia(d.n)}>
+                    {d.lbl}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <label style={{ maxWidth: 180 }}>Hora de inicio
+              <input type="time" value={form.hora} onChange={e => up('hora', e.target.value)} />
+            </label>
+
             <label className="checkbox">
               <input type="checkbox" checked={form.requiere_informe}
                 onChange={e => up('requiere_informe', e.target.checked)} />
@@ -194,3 +216,5 @@ export default function Clases() {
     </div>
   )
 }
+
+export { LBL }

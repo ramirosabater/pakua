@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
+import AvisoCuota from '../../components/AvisoCuota'
 
 const METODOS = ['efectivo', 'transferencia', 'mercadopago', 'tarjeta', 'otro']
 const ESTADO_PILL = { pendiente: 'warn', aprobado: 'ok', rechazado: 'off' }
@@ -49,6 +50,7 @@ export default function MisPagos() {
 
   return (
     <div className="stack">
+      <AvisoCuota />
       <section className="card">
         <h2>Registrar un pago</h2>
         <form onSubmit={submit} className="form">

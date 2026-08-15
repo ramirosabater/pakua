@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
+import AvisoCuota from '../../components/AvisoCuota'
 
 export default function MisInformes() {
   const { session } = useAuth()
@@ -45,6 +46,7 @@ export default function MisInformes() {
 
   return (
     <div className="stack">
+      <AvisoCuota />
       <section className="card">
         <h2>Nuevo informe</h2>
         <p className="muted">Sólo vos y los profesores pueden leer lo que escribas.</p>
