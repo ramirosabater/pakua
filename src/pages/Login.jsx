@@ -2,10 +2,11 @@ import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import { supabase } from '../supabaseClient'
 import { useAuth } from '../context/AuthContext'
+import { aEmail } from '../lib/usuario'
 
 export default function Login() {
   const { session, profile, loading } = useAuth()
-  const [email, setEmail] = useState('')
+  const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
@@ -14,10 +15,10 @@ export default function Login() {
     e.preventDefault()
     setBusy(true); setMsg(null)
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { error } = await supabase.auth.signInWithPassword({ email: aEmail(usuario), password })
       if (error) throw error
     } catch (err) {
-      setMsg({ type: 'error', text: err.message })
+      setMsg({ type: 'error', text: 'Usuario o contraseña incorrectos.' })
     } finally {
       setBusy(false)
     }
@@ -39,8 +40,9 @@ export default function Login() {
           <p className="muted">Ingresá a tu cuenta</p>
         </div>
         <form onSubmit={submit} className="form">
-          <label>Email
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <label>Usuario
+            <input type="text" value={usuario} onChange={e => setUsuario(e.target.value)}
+              required autoCapitalize="none" autoCorrect="off" spellCheck="false" placeholder="tu usuario" />
           </label>
           <label>Contraseña
             <input type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />

@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@supabase/supabase-js'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
+import { aEmail, sanitizarUsuario } from '../../lib/usuario'
 
 const ROLES = ['alumno', 'profesor', 'admin']
-const NUEVO_VACIO = { full_name: '', email: '', password: '', role: 'alumno' }
+const NUEVO_VACIO = { full_name: '', usuario: '', password: '', role: 'alumno' }
 
 export default function Usuarios() {
   const { profile } = useAuth()
@@ -22,7 +23,7 @@ export default function Usuarios() {
 
   async function load() {
     const { data } = await supabase.from('profiles')
-      .select('id, full_name, role, telefono, activo')
+      .select('id, full_name, role, telefono, activo, usuario')
       .order('role').order('full_name')
     setUsuarios(data ?? [])
     const map = {}
@@ -38,6 +39,11 @@ export default function Usuarios() {
   async function crearUsuario(e) {
     e.preventDefault(); setCreando(true); setAltaMsg(null)
     try {
+      const usuarioGuardar = nuevo.usuario.includes('@')
+        ? nuevo.usuario.trim().toLowerCase()
+        : sanitizarUsuario(nuevo.usuario)
+      if (!usuarioGuardar) throw new Error('Ingresá un usuario válido.')
+
       // Cliente temporal para registrar sin pisar la sesión del admin.
       const tempClient = createClient(
         import.meta.env.VITE_SUPABASE_URL,
@@ -45,21 +51,24 @@ export default function Usuarios() {
         { auth: { persistSession: false, autoRefreshToken: false } }
       )
       const { data, error } = await tempClient.auth.signUp({
-        email: nuevo.email.trim(),
+        email: aEmail(nuevo.usuario),
         password: nuevo.password,
         options: { data: { full_name: nuevo.full_name.trim() } },
       })
-      if (error) throw error
+      if (error) {
+        if (/registered|already/i.test(error.message)) throw new Error('Ese usuario ya existe. Elegí otro.')
+        throw error
+      }
 
       const nuevoId = data.user?.id
       if (nuevoId) {
-        // El trigger crea el perfil como 'alumno'; ajustamos nombre y rol.
+        // El trigger crea el perfil como 'alumno'; ajustamos nombre, rol y usuario.
         const { error: e2 } = await supabase.from('profiles')
-          .update({ full_name: nuevo.full_name.trim(), role: nuevo.role })
+          .update({ full_name: nuevo.full_name.trim(), role: nuevo.role, usuario: usuarioGuardar })
           .eq('id', nuevoId)
         if (e2) throw e2
       }
-      setAltaMsg({ type: 'ok', text: `Usuario ${nuevo.email.trim()} creado como ${nuevo.role}.` })
+      setAltaMsg({ type: 'ok', text: `Usuario "${usuarioGuardar}" creado como ${nuevo.role}. Ya puede ingresar.` })
       setNuevo(NUEVO_VACIO)
       setAbierto(false)
       load()
@@ -130,14 +139,16 @@ export default function Usuarios() {
             </label>
           </div>
           <div className="grid-2">
-            <label>Email
-              <input type="email" value={nuevo.email} onChange={e => upNuevo('email', e.target.value)} required />
+            <label>Usuario
+              <input type="text" value={nuevo.usuario} onChange={e => upNuevo('usuario', e.target.value)}
+                required autoCapitalize="none" autoCorrect="off" spellCheck="false" placeholder="ej: juan.perez" />
             </label>
             <label>Contraseña temporal
               <input type="text" value={nuevo.password} onChange={e => upNuevo('password', e.target.value)}
                 required minLength={6} placeholder="mínimo 6 caracteres" />
             </label>
           </div>
+          <p className="hint">El alumno ingresa con ese usuario y esa contraseña. No hace falta email.</p>
           {altaMsg && <div className={'alert alert-' + altaMsg.type}>{altaMsg.text}</div>}
           <button className="btn btn-primary" disabled={creando}>
             {creando ? 'Creando…' : 'Crear usuario'}
@@ -155,7 +166,7 @@ export default function Usuarios() {
         <div className="table-wrap">
           <table className="table">
             <thead>
-              <tr><th>Nombre</th><th>Rol</th><th>Teléfono</th><th>Estado</th><th></th></tr>
+              <tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Teléfono</th><th>Estado</th><th></th></tr>
             </thead>
             <tbody>
               {visibles.map(u => (
@@ -164,6 +175,7 @@ export default function Usuarios() {
                     <input value={edits[u.id]?.full_name ?? ''}
                       onChange={e => up(u.id, 'full_name', e.target.value)} />
                   </td>
+                  <td className="mono">{u.usuario || '—'}</td>
                   <td>
                     <select value={edits[u.id]?.role ?? 'alumno'}
                       onChange={e => up(u.id, 'role', e.target.value)}>
