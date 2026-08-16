@@ -15,7 +15,7 @@ function horarioTexto(dias, hora) {
   return (ds.join(', ') + (hora ? ' ' + hora : '')).trim()
 }
 
-const FORM_VACIO = { nombre: '', descripcion: '', profesor_id: '', requiere_informe: false, dias: [], hora: '' }
+const FORM_VACIO = { nombre: '', descripcion: '', profesor_id: '', requiere_informe: false, dias: [], hora: '', cuota: '' }
 
 export default function Clases() {
   const { profile } = useAuth()
@@ -56,7 +56,7 @@ export default function Clases() {
     setForm({
       nombre: c.nombre ?? '', descripcion: c.descripcion ?? '',
       profesor_id: c.profesor_id ?? '', requiere_informe: !!c.requiere_informe,
-      dias: c.dias ?? [], hora: c.hora ?? '',
+      dias: c.dias ?? [], hora: c.hora ?? '', cuota: c.cuota ?? '',
     })
     setMsg(null)
     setAbierto(true)
@@ -74,6 +74,7 @@ export default function Clases() {
       requiere_informe: form.requiere_informe,
       dias: form.dias,
       hora: form.hora || null,
+      cuota: Number(form.cuota) || 0,
       horario: horarioTexto(form.dias, form.hora),
     }
     const { error } = editId
@@ -154,9 +155,15 @@ export default function Clases() {
                 ))}
               </div>
             </div>
-            <label style={{ maxWidth: 180 }}>Hora de inicio
-              <input type="time" value={form.hora} onChange={e => up('hora', e.target.value)} />
-            </label>
+            <div className="grid-2">
+              <label>Hora de inicio
+                <input type="time" value={form.hora} onChange={e => up('hora', e.target.value)} />
+              </label>
+              <label>Valor de la cuota ($)
+                <input type="number" step="0.01" min="0" value={form.cuota}
+                  onChange={e => up('cuota', e.target.value)} placeholder="0" />
+              </label>
+            </div>
 
             <label className="checkbox">
               <input type="checkbox" checked={form.requiere_informe}
@@ -179,13 +186,14 @@ export default function Clases() {
           <div className="table-wrap">
             <table className="table">
               <thead>
-                <tr><th>Clase</th><th>Horario</th><th>Profesor</th><th>Especial</th><th></th></tr>
+                <tr><th>Clase</th><th>Horario</th><th>Cuota</th><th>Profesor</th><th>Especial</th><th></th></tr>
               </thead>
               <tbody>
                 {clases.map(c => (
                   <tr key={c.id}>
                     <td>{c.nombre}</td>
                     <td>{c.horario || '—'}</td>
+                    <td className="mono">${Number(c.cuota || 0).toLocaleString('es-AR')}</td>
                     <td>{c.profesor?.full_name ?? '—'}</td>
                     <td>{c.requiere_informe ? 'Sí' : 'No'}</td>
                     <td className="row-actions">
