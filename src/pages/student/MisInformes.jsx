@@ -13,6 +13,7 @@ export default function MisInformes() {
   const [contenido, setContenido] = useState('')
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [abierto, setAbierto] = useState(false)
 
   async function load() {
     const { data: insc } = await supabase
@@ -39,6 +40,7 @@ export default function MisInformes() {
     } else {
       setTitulo(''); setContenido(''); setClaseId('')
       setMsg({ type: 'ok', text: 'Informe enviado.' })
+      setAbierto(false)
       load()
     }
     setBusy(false)
@@ -47,27 +49,35 @@ export default function MisInformes() {
   return (
     <div className="stack">
       <AvisoCuota />
-      <section className="card">
-        <h2>Nuevo informe</h2>
-        <p className="muted">Sólo vos y los profesores pueden leer lo que escribas.</p>
-        <form onSubmit={submit} className="form">
-          <label>Clase especial
-            <select value={claseId} onChange={e => setClaseId(e.target.value)} required>
-              <option value="">Elegí una clase…</option>
-              {clases.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-            </select>
-          </label>
-          <label>Título
-            <input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ej: Seminario de formas" />
-          </label>
-          <label>Informe
-            <textarea rows={6} value={contenido} onChange={e => setContenido(e.target.value)} required />
-          </label>
-          {msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
-          <button className="btn btn-primary" disabled={busy}>Enviar informe</button>
-        </form>
-        {clases.length === 0 && <p className="hint">Cuando la dirección te inscriba en una clase especial, vas a poder escribir su informe acá.</p>}
-      </section>
+      {!abierto && msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
+      {!abierto ? (
+        <div><button className="btn btn-primary" onClick={() => { setAbierto(true); setMsg(null) }}>+ Nuevo informe</button></div>
+      ) : (
+        <section className="card">
+          <div className="row-between">
+            <h2>Nuevo informe</h2>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAbierto(false)}>Cerrar</button>
+          </div>
+          <p className="muted">Sólo vos y los profesores pueden leer lo que escribas.</p>
+          <form onSubmit={submit} className="form">
+            <label>Clase especial
+              <select value={claseId} onChange={e => setClaseId(e.target.value)} required>
+                <option value="">Elegí una clase…</option>
+                {clases.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+              </select>
+            </label>
+            <label>Título
+              <input value={titulo} onChange={e => setTitulo(e.target.value)} placeholder="Ej: Seminario de formas" />
+            </label>
+            <label>Informe
+              <textarea rows={6} value={contenido} onChange={e => setContenido(e.target.value)} required />
+            </label>
+            {msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
+            <button className="btn btn-primary" disabled={busy}>Enviar informe</button>
+          </form>
+          {clases.length === 0 && <p className="hint">Cuando la dirección te inscriba en una clase especial, vas a poder escribir su informe acá.</p>}
+        </section>
+      )}
 
       <section className="card">
         <h2>Mis informes enviados</h2>

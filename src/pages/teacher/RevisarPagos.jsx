@@ -21,10 +21,11 @@ export default function RevisarPagos() {
   const [editAlumnoNombre, setEditAlumnoNombre] = useState('')
   const [file, setFile] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [abierto, setAbierto] = useState(false)
 
   async function load() {
     const { data } = await supabase.from('pagos')
-      .select('*, alumno:profiles(full_name)')
+      .select('*, alumno:profiles!alumno_id(full_name)')
       .order('created_at', { ascending: false })
     setPagos(data ?? [])
     const { data: al } = await supabase.from('profiles')
@@ -46,12 +47,14 @@ export default function RevisarPagos() {
       estado: p.estado,
     })
     setFile(null); setMsg(null)
+    setAbierto(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   function cancelar() {
     setEditId(null); setEditAlumnoNombre('')
     setForm(PAGO_VACIO()); setFile(null); setMsg(null)
+    setAbierto(false)
   }
 
   async function subirComprobante(alumnoId) {
@@ -87,7 +90,8 @@ export default function RevisarPagos() {
         if (error) throw error
         setMsg({ type: 'ok', text: 'Pago registrado.' })
       }
-      cancelar(); load()
+      setEditId(null); setEditAlumnoNombre(''); setForm(PAGO_VACIO()); setFile(null); setAbierto(false)
+      load()
     } catch (err) {
       setMsg({ type: 'error', text: err.message })
     } finally {
@@ -118,8 +122,15 @@ export default function RevisarPagos() {
 
   return (
     <div className="stack">
+      {!abierto && msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
+      {!abierto ? (
+        <div><button className="btn btn-primary" onClick={() => { cancelar(); setAbierto(true) }}>+ Registrar pago</button></div>
+      ) : (
       <section className="card">
-        <h2>{editId ? `Editar pago · ${editAlumnoNombre}` : 'Registrar pago'}</h2>
+        <div className="row-between">
+          <h2>{editId ? `Editar pago · ${editAlumnoNombre}` : 'Registrar pago'}</h2>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={cancelar}>Cerrar</button>
+        </div>
         <form onSubmit={guardar} className="form">
           {!editId && (
             <label>Alumno
@@ -158,10 +169,11 @@ export default function RevisarPagos() {
             <button className="btn btn-primary" disabled={busy}>
               {busy ? '…' : editId ? 'Guardar cambios' : 'Registrar pago'}
             </button>
-            {editId && <button type="button" className="btn btn-ghost" onClick={cancelar}>Cancelar</button>}
+            <button type="button" className="btn btn-ghost" onClick={cancelar}>Cancelar</button>
           </div>
         </form>
       </section>
+      )}
 
       <section className="card">
         <h2>Pagos</h2>

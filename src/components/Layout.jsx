@@ -1,6 +1,5 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import OctagonMark from './OctagonMark'
 
 const ROLE_LABEL = { alumno: 'Alumno', profesor: 'Profesor', admin: 'Dirección' }
 
@@ -10,7 +9,7 @@ export default function Layout({ nav }) {
     <div className="app-shell">
       <header className="topbar">
         <div className="brand">
-          <OctagonMark size={30} />
+          <img src="/logopakua.png" alt="Pakua" style={{ height: 40, borderRadius: 4 }} />
           <div>
             <div className="brand-name">Pakua Liga Sudamericana</div>
             <div className="brand-sub">{ROLE_LABEL[profile?.role] ?? ''}</div>

@@ -24,9 +24,9 @@ function HomeRedirect() {
 }
 
 const studentNav = [
-  { to: '/alumno', label: 'Mis informes' },
+  { to: '/alumno', label: 'Mis pagos' },
+  { to: '/alumno/informes', label: 'Mis informes' },
   { to: '/alumno/asistencia', label: 'Mi asistencia' },
-  { to: '/alumno/pagos', label: 'Mis pagos' },
 ]
 
 // El menú de profesor/dirección. Cobranzas y Usuarios se muestran solo al admin.
@@ -55,9 +55,9 @@ export default function App() {
       <Route path="/alumno" element={
         <ProtectedRoute roles={['alumno', 'admin']}><Layout nav={studentNav} /></ProtectedRoute>
       }>
-        <Route index element={<MisInformes />} />
+        <Route index element={<MisPagos />} />
+        <Route path="informes" element={<MisInformes />} />
         <Route path="asistencia" element={<MiAsistencia />} />
-        <Route path="pagos" element={<MisPagos />} />
       </Route>
 
       <Route path="/profesor" element={

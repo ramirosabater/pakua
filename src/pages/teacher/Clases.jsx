@@ -27,6 +27,7 @@ export default function Clases() {
 
   const [form, setForm] = useState(FORM_VACIO)
   const [editId, setEditId] = useState(null)
+  const [abierto, setAbierto] = useState(false)
 
   const [selClase, setSelClase] = useState('')
   const [inscriptos, setInscriptos] = useState([])
@@ -58,10 +59,11 @@ export default function Clases() {
       dias: c.dias ?? [], hora: c.hora ?? '',
     })
     setMsg(null)
+    setAbierto(true)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
-  function cancelar() { setEditId(null); setForm(FORM_VACIO); setMsg(null) }
+  function cancelar() { setEditId(null); setForm(FORM_VACIO); setMsg(null); setAbierto(false) }
 
   async function guardar(e) {
     e.preventDefault(); setMsg(null)
@@ -79,7 +81,7 @@ export default function Clases() {
       : await supabase.from('clases').insert(datos)
     if (error) { setMsg({ type: 'error', text: error.message }); return }
     setMsg({ type: 'ok', text: editId ? 'Clase actualizada.' : 'Clase creada.' })
-    cancelar(); load()
+    setEditId(null); setForm(FORM_VACIO); setAbierto(false); load()
   }
 
   async function borrar(c) {
@@ -116,9 +118,16 @@ export default function Clases() {
 
   return (
     <div className="stack">
-      {isAdmin && (
+      {isAdmin && !abierto && msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
+      {isAdmin && !abierto && (
+        <div><button className="btn btn-primary" onClick={() => { cancelar(); setAbierto(true) }}>+ Nueva clase</button></div>
+      )}
+      {isAdmin && abierto && (
         <section className="card">
-          <h2>{editId ? 'Editar clase' : 'Nueva clase'}</h2>
+          <div className="row-between">
+            <h2>{editId ? 'Editar clase' : 'Nueva clase'}</h2>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={cancelar}>Cerrar</button>
+          </div>
           <form onSubmit={guardar} className="form">
             <label>Nombre
               <input value={form.nombre} onChange={e => up('nombre', e.target.value)} required />
@@ -157,7 +166,7 @@ export default function Clases() {
             {msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
             <div className="row-actions">
               <button className="btn btn-primary">{editId ? 'Guardar cambios' : 'Crear clase'}</button>
-              {editId && <button type="button" className="btn btn-ghost" onClick={cancelar}>Cancelar</button>}
+              <button type="button" className="btn btn-ghost" onClick={cancelar}>Cancelar</button>
             </div>
           </form>
         </section>

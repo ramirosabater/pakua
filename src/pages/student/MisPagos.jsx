@@ -16,6 +16,7 @@ export default function MisPagos() {
   const [file, setFile] = useState(null)
   const [msg, setMsg] = useState(null)
   const [busy, setBusy] = useState(false)
+  const [abierto, setAbierto] = useState(false)
 
   async function load() {
     const { data } = await supabase.from('pagos')
@@ -40,6 +41,7 @@ export default function MisPagos() {
       if (error) throw error
       setMonto(''); setFile(null)
       setMsg({ type: 'ok', text: 'Pago registrado. Queda pendiente de revisión.' })
+      setAbierto(false)
       load()
     } catch (err) {
       setMsg({ type: 'error', text: err.message })
@@ -51,29 +53,37 @@ export default function MisPagos() {
   return (
     <div className="stack">
       <AvisoCuota />
-      <section className="card">
-        <h2>Registrar un pago</h2>
-        <form onSubmit={submit} className="form">
-          <div className="grid-2">
-            <label>Monto
-              <input type="number" step="0.01" min="0" value={monto} onChange={e => setMonto(e.target.value)} required />
-            </label>
-            <label>Período
-              <input type="month" value={periodo} onChange={e => setPeriodo(e.target.value)} required />
-            </label>
+      {!abierto && msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
+      {!abierto ? (
+        <div><button className="btn btn-primary" onClick={() => { setAbierto(true); setMsg(null) }}>+ Nuevo pago</button></div>
+      ) : (
+        <section className="card">
+          <div className="row-between">
+            <h2>Registrar un pago</h2>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAbierto(false)}>Cerrar</button>
           </div>
-          <label>Medio de pago
-            <select value={metodo} onChange={e => setMetodo(e.target.value)}>
-              {METODOS.map(m => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </label>
-          <label>Comprobante (opcional)
-            <input type="file" accept="image/*,application/pdf" onChange={e => setFile(e.target.files[0] ?? null)} />
-          </label>
-          {msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
-          <button className="btn btn-primary" disabled={busy}>Registrar pago</button>
-        </form>
-      </section>
+          <form onSubmit={submit} className="form">
+            <div className="grid-2">
+              <label>Monto
+                <input type="number" step="0.01" min="0" value={monto} onChange={e => setMonto(e.target.value)} required />
+              </label>
+              <label>Período
+                <input type="month" value={periodo} onChange={e => setPeriodo(e.target.value)} required />
+              </label>
+            </div>
+            <label>Medio de pago
+              <select value={metodo} onChange={e => setMetodo(e.target.value)}>
+                {METODOS.map(m => <option key={m} value={m}>{m}</option>)}
+              </select>
+            </label>
+            <label>Comprobante (opcional)
+              <input type="file" accept="image/*,application/pdf" onChange={e => setFile(e.target.files[0] ?? null)} />
+            </label>
+            {msg && <div className={'alert alert-' + msg.type}>{msg.text}</div>}
+            <button className="btn btn-primary" disabled={busy}>Registrar pago</button>
+          </form>
+        </section>
+      )}
 
       <section className="card">
         <h2>Mis pagos</h2>

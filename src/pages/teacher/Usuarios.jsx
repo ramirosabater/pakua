@@ -18,6 +18,7 @@ export default function Usuarios() {
   const [nuevo, setNuevo] = useState(NUEVO_VACIO)
   const [creando, setCreando] = useState(false)
   const [altaMsg, setAltaMsg] = useState(null)
+  const [abierto, setAbierto] = useState(false)
 
   async function load() {
     const { data } = await supabase.from('profiles')
@@ -60,6 +61,7 @@ export default function Usuarios() {
       }
       setAltaMsg({ type: 'ok', text: `Usuario ${nuevo.email.trim()} creado como ${nuevo.role}.` })
       setNuevo(NUEVO_VACIO)
+      setAbierto(false)
       load()
     } catch (err) {
       setAltaMsg({ type: 'error', text: err.message })
@@ -103,8 +105,15 @@ export default function Usuarios() {
 
   return (
     <div className="stack">
+      {!abierto && altaMsg && <div className={'alert alert-' + altaMsg.type}>{altaMsg.text}</div>}
+      {!abierto ? (
+        <div><button className="btn btn-primary" onClick={() => { setAbierto(true); setAltaMsg(null) }}>+ Nuevo usuario</button></div>
+      ) : (
       <section className="card">
-        <h2>Alta de usuario</h2>
+        <div className="row-between">
+          <h2>Alta de usuario</h2>
+          <button type="button" className="btn btn-ghost btn-sm" onClick={() => setAbierto(false)}>Cerrar</button>
+        </div>
         <p className="muted">
           Creá cuentas de alumnos o profesores. La persona podrá ingresar con el email y la
           contraseña que pongas acá (después puede cambiarla).
@@ -135,6 +144,7 @@ export default function Usuarios() {
           </button>
         </form>
       </section>
+      )}
 
       <section className="card">
         <h2>Usuarios</h2>

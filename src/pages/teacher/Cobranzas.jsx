@@ -10,7 +10,7 @@ export default function Cobranzas() {
 
   useEffect(() => {
     supabase.from('pagos')
-      .select('alumno_id, monto, estado, metodo, alumno:profiles(full_name)')
+      .select('alumno_id, monto, estado, metodo, alumno:profiles!alumno_id(full_name)')
       .eq('periodo', periodo)
       .then(({ data }) => setPagos(data ?? []))
     supabase.from('profiles')
