@@ -5,10 +5,11 @@ import { useAuth } from '../../context/AuthContext'
 
 const DIA_GRACIA = 10  // hasta el día 10 del mes, no pagar aún no es "deuda"
 
-// Estado de cuota del mes actual según el pago (o su ausencia).
-function estadoCuota(estadoPago, diaDelMes) {
-  if (estadoPago === 'aprobado') return { key: 'pago', label: 'Al día', pill: 'ok' }
-  if (estadoPago === 'pendiente') return { key: 'revision', label: 'Pago en revisión', pill: 'warn' }
+// Estado de cuota del mes: compara lo pagado (aprobado) con lo que le corresponde.
+function estadoCuota(esperado, pagado, tienePendiente, diaDelMes) {
+  if (esperado <= 0) return null                       // sin cuota asignada: no se marca
+  if (pagado >= esperado) return { key: 'pago', label: 'Al día', pill: 'ok' }
+  if (tienePendiente) return { key: 'revision', label: 'Pago en revisión', pill: 'warn' }
   if (diaDelMes > DIA_GRACIA) return { key: 'deuda', label: 'Con deuda', pill: 'off' }
   return { key: 'plazo', label: 'Sin pagar (en plazo)', pill: 'warn' }
 }
@@ -67,20 +68,30 @@ export default function TomarAsistencia() {
     ;(asis ?? []).forEach(a => { mapA[a.alumno_id] = a.presente })
     setEstado(mapA)
 
-    // Estado de cuota del MES ACTUAL para cada alumno
+    // Estado de cuota del MES ACTUAL para cada alumno (monto pagado vs esperado)
     const ids = list.map(a => a.id)
     const periodoActual = new Date().toISOString().slice(0, 7)
     const diaDelMes = new Date().getDate()
     const mapC = {}
     if (ids.length) {
+      // Lo pagado (aprobado) y si hay pendiente, por alumno
       const { data: pagosMes } = await supabase
-        .from('pagos').select('alumno_id, estado').eq('periodo', periodoActual).in('alumno_id', ids)
-      const rank = { aprobado: 3, pendiente: 2, rechazado: 1 }
-      const mejor = {}
+        .from('pagos').select('alumno_id, estado, monto').eq('periodo', periodoActual).in('alumno_id', ids)
+      const pagado = {}, pendiente = {}
       ;(pagosMes ?? []).forEach(p => {
-        if (!mejor[p.alumno_id] || rank[p.estado] > rank[mejor[p.alumno_id]]) mejor[p.alumno_id] = p.estado
+        if (p.estado === 'aprobado') pagado[p.alumno_id] = (pagado[p.alumno_id] || 0) + Number(p.monto)
+        if (p.estado === 'pendiente') pendiente[p.alumno_id] = true
       })
-      list.forEach(a => { mapC[a.id] = estadoCuota(mejor[a.id], diaDelMes) })
+      // Lo esperado: suma de cuotas de todas las clases del alumno
+      const { data: insc2 } = await supabase
+        .from('inscripciones').select('alumno_id, clase:clases(cuota)').in('alumno_id', ids)
+      const esperado = {}
+      ;(insc2 ?? []).forEach(i => {
+        esperado[i.alumno_id] = (esperado[i.alumno_id] || 0) + Number(i.clase?.cuota || 0)
+      })
+      list.forEach(a => {
+        mapC[a.id] = estadoCuota(esperado[a.id] || 0, pagado[a.id] || 0, !!pendiente[a.id], diaDelMes)
+      })
     }
     setCuotas(mapC)
   }
