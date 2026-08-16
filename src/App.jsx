@@ -33,8 +33,8 @@ const studentNav = [
 function TeacherLayout() {
   const { profile } = useAuth()
   const nav = [
-    { to: '/profesor', label: 'Asistencia' },
-    { to: '/profesor/calendario', label: 'Calendario' },
+    { to: '/profesor', label: 'Calendario' },
+    { to: '/profesor/asistencia', label: 'Asistencia' },
     { to: '/profesor/informes', label: 'Informes' },
     { to: '/profesor/pagos', label: 'Pagos' },
     { to: '/profesor/clases', label: 'Clases' },
@@ -63,8 +63,8 @@ export default function App() {
       <Route path="/profesor" element={
         <ProtectedRoute roles={['profesor', 'admin']}><TeacherLayout /></ProtectedRoute>
       }>
-        <Route index element={<TomarAsistencia />} />
-        <Route path="calendario" element={<Calendario />} />
+        <Route index element={<Calendario />} />
+        <Route path="asistencia" element={<TomarAsistencia />} />
         <Route path="informes" element={<VerInformes />} />
         <Route path="pagos" element={<RevisarPagos />} />
         <Route path="clases" element={<Clases />} />
