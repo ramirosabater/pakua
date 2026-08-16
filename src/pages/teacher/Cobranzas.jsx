@@ -25,7 +25,7 @@ export default function Cobranzas() {
       .select('id, nombre, cuota').order('nombre')
       .then(({ data }) => setClases(data ?? []))
     supabase.from('inscripciones')
-      .select('clase_id, alumno:profiles(activo)')
+      .select('clase_id, alumno_id, alumno:profiles(activo)')
       .then(({ data }) => setInscripciones(data ?? []))
   }, [])
 
@@ -34,9 +34,7 @@ export default function Cobranzas() {
   const pendientes = pagos.filter(p => p.estado === 'pendiente')
   const totalRecaudado = aprobados.reduce((s, p) => s + Number(p.monto), 0)
   const montoPendiente = pendientes.reduce((s, p) => s + Number(p.monto), 0)
-  const pagaronIds = new Set(aprobados.map(p => p.alumno_id))
   const pendientesIds = new Set(pendientes.map(p => p.alumno_id))
-  const deudores = alumnos.filter(a => !pagaronIds.has(a.id))
 
   const porMetodo = {}
   aprobados.forEach(p => { porMetodo[p.metodo] = (porMetodo[p.metodo] || 0) + Number(p.monto) })
@@ -53,6 +51,22 @@ export default function Cobranzas() {
   const totalEsperado = filasClase.reduce((s, f) => s + f.esperado, 0)
   const pctCobrado = totalEsperado ? Math.round((totalRecaudado / totalEsperado) * 100) : 0
   const faltaCobrar = Math.max(totalEsperado - totalRecaudado, 0)
+
+  // ---- Deudores: quien pagó MENOS que su cuota esperada ----
+  const cuotaPorClase = Object.fromEntries(clases.map(c => [c.id, Number(c.cuota || 0)]))
+  const activosSet = new Set(alumnos.map(a => a.id))
+  const esperadoPorAlumno = {}
+  inscripciones.forEach(i => {
+    if (i.alumno?.activo !== false && activosSet.has(i.alumno_id))
+      esperadoPorAlumno[i.alumno_id] = (esperadoPorAlumno[i.alumno_id] || 0) + (cuotaPorClase[i.clase_id] || 0)
+  })
+  const pagadoPorAlumno = {}
+  aprobados.forEach(p => { pagadoPorAlumno[p.alumno_id] = (pagadoPorAlumno[p.alumno_id] || 0) + Number(p.monto) })
+  const deudores = alumnos.map(a => {
+    const esperado = esperadoPorAlumno[a.id] || 0
+    const pagado = pagadoPorAlumno[a.id] || 0
+    return { ...a, esperado, pagado, saldo: esperado - pagado }
+  }).filter(a => a.saldo > 0)
 
   return (
     <div className="stack">
@@ -140,20 +154,25 @@ export default function Cobranzas() {
 
       <section className="card">
         <h2>Deudores del período</h2>
-        {deudores.length === 0 && <p className="muted">Todos los alumnos activos pagaron este período. 🎉</p>}
+        {deudores.length === 0 && <p className="muted">Todos los alumnos activos están al día con su cuota. 🎉</p>}
         {deudores.length > 0 && (
           <div className="table-wrap">
             <table className="table">
-              <thead><tr><th>Alumno</th><th>Teléfono</th><th>Estado</th></tr></thead>
+              <thead><tr><th>Alumno</th><th>Teléfono</th><th>Esperado</th><th>Pagado</th><th>Debe</th><th>Estado</th></tr></thead>
               <tbody>
                 {deudores.map(a => (
                   <tr key={a.id}>
                     <td>{a.full_name}</td>
                     <td className="mono">{a.telefono || '—'}</td>
+                    <td className="mono">{money(a.esperado)}</td>
+                    <td className="mono">{money(a.pagado)}</td>
+                    <td className="mono">{money(a.saldo)}</td>
                     <td>
                       {pendientesIds.has(a.id)
-                        ? <span className="pill pill-warn">Pago en revisión</span>
-                        : <span className="pill pill-off">Sin pagar</span>}
+                        ? <span className="pill pill-warn">En revisión</span>
+                        : a.pagado > 0
+                          ? <span className="pill pill-off">Pagó de menos</span>
+                          : <span className="pill pill-off">Sin pagar</span>}
                     </td>
                   </tr>
                 ))}
