@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
+import { cumpleEnFecha } from '../../lib/pakua'
 
 const DIA_GRACIA = 10  // hasta el día 10 del mes, no pagar aún no es "deuda"
 
@@ -56,7 +57,7 @@ export default function TomarAsistencia() {
   async function loadRoster() {
     if (!claseId) { setAlumnos([]); return }
     const { data: insc } = await supabase
-      .from('inscripciones').select('alumno:profiles(id, full_name)').eq('clase_id', claseId)
+      .from('inscripciones').select('alumno:profiles(id, full_name, fecha_nacimiento, rango)').eq('clase_id', claseId)
     const list = (insc ?? []).map(i => i.alumno).filter(Boolean)
     setAlumnos(list)
 
@@ -113,6 +114,7 @@ export default function TomarAsistencia() {
   const diaSel = new Date(fecha + 'T00:00:00').getDay()
   const noEsDiaDeClase = claseSel?.dias?.length && !claseSel.dias.includes(diaSel)
   const conDeuda = Object.values(cuotas).filter(c => c.key === 'deuda').length
+  const cumpleaneros = alumnos.filter(a => cumpleEnFecha(a.fecha_nacimiento, fecha))
 
   return (
     <section className="card">
@@ -142,6 +144,11 @@ export default function TomarAsistencia() {
 
       {alumnos.length > 0 && (
         <>
+          {cumpleaneros.length > 0 && (
+            <div className="alert alert-ok">
+              🎂 ¡Hoy cumple(n) años: {cumpleaneros.map(a => a.full_name).join(', ')}!
+            </div>
+          )}
           {conDeuda > 0 && (
             <p className="muted">
               <span className="pill pill-off">Con deuda</span>{' '}
@@ -155,6 +162,8 @@ export default function TomarAsistencia() {
                 <li key={a.id} className="roster-row" style={c ? estiloFila(c.key) : undefined}>
                   <span className="roster-name">
                     {a.full_name}
+                    {cumpleEnFecha(a.fecha_nacimiento, fecha) && <span title="Cumple años">🎂</span>}
+                    {a.rango && <span className="tag">{a.rango}</span>}
                     {c && c.key !== 'pago' && <span className={'pill pill-' + c.pill}>{c.label}</span>}
                   </span>
                   <label className={'switch' + (estado[a.id] ? ' on' : '')}>

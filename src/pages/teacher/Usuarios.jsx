@@ -3,9 +3,10 @@ import { createClient } from '@supabase/supabase-js'
 import { supabase } from '../../supabaseClient'
 import { useAuth } from '../../context/AuthContext'
 import { aEmail, sanitizarUsuario } from '../../lib/usuario'
+import { RANGOS, calcularEdad } from '../../lib/pakua'
 
 const ROLES = ['alumno', 'profesor', 'admin']
-const NUEVO_VACIO = { full_name: '', usuario: '', password: '', role: 'alumno' }
+const NUEVO_VACIO = { full_name: '', usuario: '', password: '', role: 'alumno', fecha_nacimiento: '', rango: '' }
 
 export default function Usuarios() {
   const { profile } = useAuth()
@@ -23,12 +24,15 @@ export default function Usuarios() {
 
   async function load() {
     const { data } = await supabase.from('profiles')
-      .select('id, full_name, role, telefono, activo, usuario')
+      .select('id, full_name, role, telefono, activo, usuario, fecha_nacimiento, rango')
       .order('role').order('full_name')
     setUsuarios(data ?? [])
     const map = {}
     ;(data ?? []).forEach(u => {
-      map[u.id] = { full_name: u.full_name ?? '', role: u.role, telefono: u.telefono ?? '' }
+      map[u.id] = {
+        full_name: u.full_name ?? '', role: u.role, telefono: u.telefono ?? '',
+        fecha_nacimiento: u.fecha_nacimiento ?? '', rango: u.rango ?? '',
+      }
     })
     setEdits(map)
   }
@@ -64,7 +68,10 @@ export default function Usuarios() {
       if (nuevoId) {
         // El trigger crea el perfil como 'alumno'; ajustamos nombre, rol y usuario.
         const { error: e2 } = await supabase.from('profiles')
-          .update({ full_name: nuevo.full_name.trim(), role: nuevo.role, usuario: usuarioGuardar })
+          .update({
+            full_name: nuevo.full_name.trim(), role: nuevo.role, usuario: usuarioGuardar,
+            fecha_nacimiento: nuevo.fecha_nacimiento || null, rango: nuevo.rango || null,
+          })
           .eq('id', nuevoId)
         if (e2) throw e2
       }
@@ -84,9 +91,9 @@ export default function Usuarios() {
 
   async function guardar(id) {
     setSavingId(id); setMsg(null)
-    const { full_name, role, telefono } = edits[id]
+    const { full_name, role, telefono, fecha_nacimiento, rango } = edits[id]
     const { error } = await supabase.from('profiles')
-      .update({ full_name, role, telefono: telefono || null })
+      .update({ full_name, role, telefono: telefono || null, fecha_nacimiento: fecha_nacimiento || null, rango: rango || null })
       .eq('id', id)
     if (error) setMsg({ type: 'error', text: error.message })
     else {
@@ -149,6 +156,17 @@ export default function Usuarios() {
             </label>
           </div>
           <p className="hint">El alumno ingresa con ese usuario y esa contraseña. No hace falta email.</p>
+          <div className="grid-2">
+            <label>Fecha de nacimiento
+              <input type="date" value={nuevo.fecha_nacimiento} onChange={e => upNuevo('fecha_nacimiento', e.target.value)} />
+            </label>
+            <label>Rango
+              <select value={nuevo.rango} onChange={e => upNuevo('rango', e.target.value)}>
+                <option value="">Sin asignar</option>
+                {RANGOS.map(r => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+          </div>
           {altaMsg && <div className={'alert alert-' + altaMsg.type}>{altaMsg.text}</div>}
           <button className="btn btn-primary" disabled={creando}>
             {creando ? 'Creando…' : 'Crear usuario'}
@@ -166,7 +184,7 @@ export default function Usuarios() {
         <div className="table-wrap">
           <table className="table">
             <thead>
-              <tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Teléfono</th><th>Estado</th><th></th></tr>
+              <tr><th>Nombre</th><th>Usuario</th><th>Rango</th><th>Nacimiento / Edad</th><th>Rol</th><th>Teléfono</th><th>Estado</th><th></th></tr>
             </thead>
             <tbody>
               {visibles.map(u => (
@@ -176,6 +194,18 @@ export default function Usuarios() {
                       onChange={e => up(u.id, 'full_name', e.target.value)} />
                   </td>
                   <td className="mono">{u.usuario || '—'}</td>
+                  <td>
+                    <select value={edits[u.id]?.rango ?? ''} onChange={e => up(u.id, 'rango', e.target.value)}>
+                      <option value="">—</option>
+                      {RANGOS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </td>
+                  <td>
+                    <input type="date" value={edits[u.id]?.fecha_nacimiento ?? ''}
+                      onChange={e => up(u.id, 'fecha_nacimiento', e.target.value)} />
+                    {calcularEdad(edits[u.id]?.fecha_nacimiento) != null &&
+                      <span className="muted mono"> ({calcularEdad(edits[u.id]?.fecha_nacimiento)})</span>}
+                  </td>
                   <td>
                     <select value={edits[u.id]?.role ?? 'alumno'}
                       onChange={e => up(u.id, 'role', e.target.value)}>
