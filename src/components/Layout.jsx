@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
-const ROLE_LABEL = { alumno: 'Alumno', profesor: 'Profesor', admin: 'Dirección' }
+const ROLE_LABEL = { alumno: 'Alumno', profesor: 'Profesor', admin: 'Maestro Línea Dorada' }
 
 export default function Layout({ nav }) {
   const { profile, signOut } = useAuth()

@@ -6,13 +6,14 @@ import { aEmail, sanitizarUsuario } from '../../lib/usuario'
 import { RANGOS, calcularEdad } from '../../lib/pakua'
 
 const ROLES = ['alumno', 'profesor', 'admin']
+const ROLES_LABEL = { alumno: 'Alumno', profesor: 'Profesor', admin: 'Maestro Línea Dorada' }
 const FORM_VACIO = {
   full_name: '', usuario: '', password: '', role: 'alumno', rango: '',
-  fecha_nacimiento: '', dni: '', direccion: '',
+  fecha_nacimiento: '', dni: '', direccion: '', ciudad: '', recinto: '',
   contacto1_nombre: '', contacto1_tel: '', contacto2_nombre: '', contacto2_tel: '',
   antecedentes: '',
 }
-const CAMPOS_PERFIL = ['full_name', 'role', 'rango', 'fecha_nacimiento', 'dni', 'direccion',
+const CAMPOS_PERFIL = ['full_name', 'role', 'rango', 'fecha_nacimiento', 'dni', 'direccion', 'ciudad', 'recinto',
   'contacto1_nombre', 'contacto1_tel', 'contacto2_nombre', 'contacto2_tel', 'antecedentes']
 
 export default function Usuarios() {
@@ -20,6 +21,7 @@ export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([])
   const [msg, setMsg] = useState(null)
   const [filtro, setFiltro] = useState('')
+  const [filtroRecinto, setFiltroRecinto] = useState('')
   const [form, setForm] = useState(FORM_VACIO)
   const [editId, setEditId] = useState(null)
   const [abierto, setAbierto] = useState(false)
@@ -27,7 +29,7 @@ export default function Usuarios() {
 
   async function load() {
     const { data } = await supabase.from('profiles')
-      .select('id, full_name, role, telefono, activo, usuario, rango, fecha_nacimiento, dni, direccion, contacto1_nombre, contacto1_tel, contacto2_nombre, contacto2_tel, antecedentes')
+      .select('id, full_name, role, telefono, activo, usuario, rango, fecha_nacimiento, dni, direccion, ciudad, recinto, contacto1_nombre, contacto1_tel, contacto2_nombre, contacto2_tel, antecedentes')
       .order('role').order('full_name')
     setUsuarios(data ?? [])
   }
@@ -51,13 +53,16 @@ export default function Usuarios() {
     e.preventDefault(); setBusy(true); setMsg(null)
     try {
       const esAlumno = form.role === 'alumno'
+      const conRecinto = form.role === 'alumno' || form.role === 'profesor'
       const perfil = {
         full_name: form.full_name.trim(),
         role: form.role,
+        recinto: conRecinto ? (form.recinto || null) : null,
         rango: esAlumno ? (form.rango || null) : null,
         fecha_nacimiento: esAlumno ? (form.fecha_nacimiento || null) : null,
         dni: esAlumno ? (form.dni || null) : null,
         direccion: esAlumno ? (form.direccion || null) : null,
+        ciudad: esAlumno ? (form.ciudad || null) : null,
         contacto1_nombre: esAlumno ? (form.contacto1_nombre || null) : null,
         contacto1_tel: esAlumno ? (form.contacto1_tel || null) : null,
         contacto2_nombre: esAlumno ? (form.contacto2_nombre || null) : null,
@@ -110,8 +115,11 @@ export default function Usuarios() {
   }
 
   const esAlumno = form.role === 'alumno'
+  const conRecinto = form.role === 'alumno' || form.role === 'profesor'
+  const recintos = [...new Set(usuarios.map(u => u.recinto).filter(Boolean))].sort()
   const visibles = usuarios.filter(u =>
-    !filtro || (u.full_name ?? '').toLowerCase().includes(filtro.toLowerCase()))
+    (!filtro || (u.full_name ?? '').toLowerCase().includes(filtro.toLowerCase())) &&
+    (!filtroRecinto || u.recinto === filtroRecinto))
 
   return (
     <div className="stack">
@@ -131,7 +139,7 @@ export default function Usuarios() {
               </label>
               <label>Rol
                 <select value={form.role} onChange={e => up('role', e.target.value)}>
-                  {ROLES.map(r => <option key={r} value={r}>{r}</option>)}
+                  {ROLES.map(r => <option key={r} value={r}>{ROLES_LABEL[r]}</option>)}
                 </select>
               </label>
             </div>
@@ -152,6 +160,16 @@ export default function Usuarios() {
               </>
             )}
 
+            {conRecinto && (
+              <label>Recinto (institución)
+                <input list="lista-recintos" value={form.recinto} onChange={e => up('recinto', e.target.value)}
+                  placeholder="Institución donde asiste" />
+                <datalist id="lista-recintos">
+                  {recintos.map(r => <option key={r} value={r} />)}
+                </datalist>
+              </label>
+            )}
+
             {esAlumno && (
               <>
                 <div className="grid-2">
@@ -169,10 +187,13 @@ export default function Usuarios() {
                       {RANGOS.map(r => <option key={r} value={r}>{r}</option>)}
                     </select>
                   </label>
-                  <label>Dirección
-                    <input value={form.direccion} onChange={e => up('direccion', e.target.value)} />
+                  <label>Ciudad
+                    <input value={form.ciudad} onChange={e => up('ciudad', e.target.value)} />
                   </label>
                 </div>
+                <label>Dirección
+                  <input value={form.direccion} onChange={e => up('direccion', e.target.value)} />
+                </label>
 
                 <span className="field-label">Contacto 1</span>
                 <div className="grid-2">
@@ -213,22 +234,31 @@ export default function Usuarios() {
 
       <section className="card">
         <h2>Usuarios</h2>
-        <label className="search">Buscar
-          <input value={filtro} onChange={e => setFiltro(e.target.value)} placeholder="Nombre…" />
-        </label>
+        <div className="grid-2">
+          <label className="search">Buscar
+            <input value={filtro} onChange={e => setFiltro(e.target.value)} placeholder="Nombre…" />
+          </label>
+          <label>Recinto
+            <select value={filtroRecinto} onChange={e => setFiltroRecinto(e.target.value)}>
+              <option value="">Todos los recintos</option>
+              {recintos.map(r => <option key={r} value={r}>{r}</option>)}
+            </select>
+          </label>
+        </div>
         <div className="table-wrap">
           <table className="table">
             <thead>
-              <tr><th>Nombre</th><th>Usuario</th><th>Rango</th><th>Edad</th><th>Rol</th><th>Estado</th><th></th></tr>
+              <tr><th>Nombre</th><th>Usuario</th><th>Recinto</th><th>Rango</th><th>Edad</th><th>Rol</th><th>Estado</th><th></th></tr>
             </thead>
             <tbody>
               {visibles.map(u => (
                 <tr key={u.id} style={u.activo === false ? { opacity: 0.55 } : undefined}>
                   <td>{u.full_name || '—'}</td>
                   <td className="mono">{u.usuario || '—'}</td>
+                  <td>{u.recinto || '—'}</td>
                   <td>{u.rango || '—'}</td>
                   <td className="mono">{calcularEdad(u.fecha_nacimiento) ?? '—'}</td>
-                  <td>{u.role}</td>
+                  <td>{ROLES_LABEL[u.role] ?? u.role}</td>
                   <td>{u.activo === false
                     ? <span className="pill pill-off">Inactivo</span>
                     : <span className="pill pill-ok">Activo</span>}</td>
