@@ -10,6 +10,7 @@ export default function Cobranzas() {
   const [alumnos, setAlumnos] = useState([])
   const [clases, setClases] = useState([])
   const [inscripciones, setInscripciones] = useState([])
+  const [recintosLista, setRecintosLista] = useState([])
 
   useEffect(() => {
     supabase.from('pagos')
@@ -28,9 +29,11 @@ export default function Cobranzas() {
     supabase.from('inscripciones')
       .select('clase_id, alumno_id, alumno:profiles(activo, recinto)')
       .then(({ data }) => setInscripciones(data ?? []))
+    supabase.from('recintos').select('nombre').order('nombre')
+      .then(({ data }) => setRecintosLista((data ?? []).map(r => r.nombre)))
   }, [])
 
-  const recintos = [...new Set(alumnos.map(a => a.recinto).filter(Boolean))].sort()
+  const recintos = recintosLista
   const enRecinto = r => !filtroRecinto || r === filtroRecinto
 
   // ---- Recaudación real del período (respeta filtro por recinto del alumno) ----

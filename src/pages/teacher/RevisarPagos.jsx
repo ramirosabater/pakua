@@ -14,6 +14,7 @@ export default function RevisarPagos() {
   const [pagos, setPagos] = useState([])
   const [alumnos, setAlumnos] = useState([])
   const [alumnoClases, setAlumnoClases] = useState([])
+  const [recintosLista, setRecintosLista] = useState([])
   const [msg, setMsg] = useState(null)
   const [filtro, setFiltro] = useState('')
   const [filtroRecinto, setFiltroRecinto] = useState('')
@@ -33,6 +34,8 @@ export default function RevisarPagos() {
     const { data: al } = await supabase.from('profiles')
       .select('id, full_name, recinto').eq('role', 'alumno').eq('activo', true).order('full_name')
     setAlumnos(al ?? [])
+    const { data: rec } = await supabase.from('recintos').select('nombre').order('nombre')
+    setRecintosLista((rec ?? []).map(r => r.nombre))
   }
   useEffect(() => { load() }, [])
 
@@ -141,7 +144,7 @@ export default function RevisarPagos() {
     if (!error && data?.signedUrl) window.open(data.signedUrl, '_blank')
   }
 
-  const recintos = [...new Set(pagos.map(p => p.alumno?.recinto).filter(Boolean))].sort()
+  const recintos = recintosLista
   const visibles = pagos.filter(p =>
     (!filtro || (p.alumno?.full_name ?? '').toLowerCase().includes(filtro.toLowerCase())) &&
     (!filtroRecinto || p.alumno?.recinto === filtroRecinto))

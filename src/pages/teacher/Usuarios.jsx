@@ -22,6 +22,8 @@ export default function Usuarios() {
   const [msg, setMsg] = useState(null)
   const [filtro, setFiltro] = useState('')
   const [filtroRecinto, setFiltroRecinto] = useState('')
+  const [recintos, setRecintos] = useState([])
+  const [nuevoRecinto, setNuevoRecinto] = useState('')
   const [form, setForm] = useState(FORM_VACIO)
   const [editId, setEditId] = useState(null)
   const [abierto, setAbierto] = useState(false)
@@ -32,8 +34,24 @@ export default function Usuarios() {
       .select('id, full_name, role, telefono, activo, usuario, rango, fecha_nacimiento, dni, direccion, ciudad, recinto, contacto1_nombre, contacto1_tel, contacto2_nombre, contacto2_tel, antecedentes')
       .order('role').order('full_name')
     setUsuarios(data ?? [])
+    const { data: rec } = await supabase.from('recintos').select('*').order('nombre')
+    setRecintos(rec ?? [])
   }
   useEffect(() => { load() }, [])
+
+  async function agregarRecinto() {
+    const nombre = nuevoRecinto.trim()
+    if (!nombre) return
+    const { error } = await supabase.from('recintos').insert({ nombre })
+    if (error) setMsg({ type: 'error', text: /duplicate|unique/i.test(error.message) ? 'Ese recinto ya existe.' : error.message })
+    else { setNuevoRecinto(''); setMsg(null); load() }
+  }
+  async function borrarRecinto(r) {
+    if (!window.confirm(`¿Quitar el recinto "${r.nombre}"? Los usuarios que ya lo tengan asignado no se modifican.`)) return
+    const { error } = await supabase.from('recintos').delete().eq('id', r.id)
+    if (error) setMsg({ type: 'error', text: error.message })
+    else load()
+  }
 
   const up = (campo, valor) => setForm(f => ({ ...f, [campo]: valor }))
 
@@ -116,7 +134,6 @@ export default function Usuarios() {
 
   const esAlumno = form.role === 'alumno'
   const conRecinto = form.role === 'alumno' || form.role === 'profesor'
-  const recintos = [...new Set(usuarios.map(u => u.recinto).filter(Boolean))].sort()
   const visibles = usuarios.filter(u =>
     (!filtro || (u.full_name ?? '').toLowerCase().includes(filtro.toLowerCase())) &&
     (!filtroRecinto || u.recinto === filtroRecinto))
@@ -162,11 +179,12 @@ export default function Usuarios() {
 
             {conRecinto && (
               <label>Recinto (institución)
-                <input list="lista-recintos" value={form.recinto} onChange={e => up('recinto', e.target.value)}
-                  placeholder="Institución donde asiste" />
-                <datalist id="lista-recintos">
-                  {recintos.map(r => <option key={r} value={r} />)}
-                </datalist>
+                <select value={form.recinto} onChange={e => up('recinto', e.target.value)}>
+                  <option value="">Sin asignar</option>
+                  {recintos.map(r => <option key={r.id} value={r.nombre}>{r.nombre}</option>)}
+                  {form.recinto && !recintos.some(r => r.nombre === form.recinto) &&
+                    <option value={form.recinto}>{form.recinto}</option>}
+                </select>
               </label>
             )}
 
@@ -241,7 +259,7 @@ export default function Usuarios() {
           <label>Recinto
             <select value={filtroRecinto} onChange={e => setFiltroRecinto(e.target.value)}>
               <option value="">Todos los recintos</option>
-              {recintos.map(r => <option key={r} value={r}>{r}</option>)}
+              {recintos.map(r => <option key={r.id} value={r.nombre}>{r.nombre}</option>)}
             </select>
           </label>
         </div>
@@ -275,6 +293,24 @@ export default function Usuarios() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="card">
+        <h2>Recintos</h2>
+        <p className="muted">Instituciones donde se dicta la actividad. Se eligen al dar de alta un alumno o instructor.</p>
+        <div className="inline-add">
+          <input value={nuevoRecinto} onChange={e => setNuevoRecinto(e.target.value)} placeholder="Nombre del recinto" />
+          <button className="btn btn-sm btn-primary" onClick={agregarRecinto}>Agregar</button>
+        </div>
+        {recintos.length === 0 && <p className="muted">Todavía no cargaste recintos.</p>}
+        <ul className="list">
+          {recintos.map(r => (
+            <li key={r.id} className="list-item row-between">
+              <span>{r.nombre}</span>
+              <button className="link-btn danger" onClick={() => borrarRecinto(r)}>Quitar</button>
+            </li>
+          ))}
+        </ul>
       </section>
 
       <section className="card">
