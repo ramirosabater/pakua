@@ -15,6 +15,7 @@ import Clases from './pages/teacher/Clases'
 import Usuarios from './pages/teacher/Usuarios'
 import Calendario from './pages/teacher/Calendario'
 import Cobranzas from './pages/teacher/Cobranzas'
+import InformeAsistencia from './pages/teacher/InformeAsistencia'
 
 function HomeRedirect() {
   const { profile, loading } = useAuth()
@@ -35,6 +36,7 @@ function TeacherLayout() {
   const nav = [
     { to: '/profesor', label: 'Calendario' },
     { to: '/profesor/asistencia', label: 'Asistencia' },
+    { to: '/profesor/reportes', label: 'Reportes' },
     { to: '/profesor/informes', label: 'Informes' },
     { to: '/profesor/pagos', label: 'Pagos' },
     { to: '/profesor/clases', label: 'Clases' },
@@ -65,6 +67,7 @@ export default function App() {
       }>
         <Route index element={<Calendario />} />
         <Route path="asistencia" element={<TomarAsistencia />} />
+        <Route path="reportes" element={<InformeAsistencia />} />
         <Route path="informes" element={<VerInformes />} />
         <Route path="pagos" element={<RevisarPagos />} />
         <Route path="clases" element={<Clases />} />
