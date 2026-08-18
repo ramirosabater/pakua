@@ -15,6 +15,11 @@ export default function MisInformes() {
   const [busy, setBusy] = useState(false)
   const [abierto, setAbierto] = useState(false)
 
+  // Edición (única) de un informe existente
+  const [editId, setEditId] = useState(null)
+  const [editTitulo, setEditTitulo] = useState('')
+  const [editContenido, setEditContenido] = useState('')
+
   async function load() {
     const { data: insc } = await supabase
       .from('inscripciones')
@@ -24,7 +29,7 @@ export default function MisInformes() {
 
     const { data: inf } = await supabase
       .from('informes')
-      .select('id, titulo, contenido, created_at, clase:clases(nombre)')
+      .select('id, titulo, contenido, created_at, editado, clase:clases(nombre)')
       .order('created_at', { ascending: false })
     setInformes(inf ?? [])
   }
@@ -35,14 +40,25 @@ export default function MisInformes() {
     const { error } = await supabase.from('informes').insert({
       alumno_id: uid, clase_id: claseId || null, titulo, contenido,
     })
-    if (error) {
-      setMsg({ type: 'error', text: error.message })
-    } else {
+    if (error) setMsg({ type: 'error', text: error.message })
+    else {
       setTitulo(''); setContenido(''); setClaseId('')
-      setMsg({ type: 'ok', text: 'Informe enviado.' })
-      setAbierto(false)
-      load()
+      setMsg({ type: 'ok', text: 'Informe enviado.' }); setAbierto(false); load()
     }
+    setBusy(false)
+  }
+
+  function editar(i) {
+    setEditId(i.id); setEditTitulo(i.titulo ?? ''); setEditContenido(i.contenido ?? ''); setMsg(null)
+  }
+  function cancelarEdicion() { setEditId(null); setEditTitulo(''); setEditContenido('') }
+
+  async function guardarEdicion(id) {
+    setBusy(true); setMsg(null)
+    const { error } = await supabase.from('informes')
+      .update({ titulo: editTitulo, contenido: editContenido }).eq('id', id)
+    if (error) setMsg({ type: 'error', text: error.message })
+    else { cancelarEdicion(); setMsg({ type: 'ok', text: 'Informe modificado. Ya no se puede editar de nuevo.' }); load() }
     setBusy(false)
   }
 
@@ -85,12 +101,29 @@ export default function MisInformes() {
         <ul className="list">
           {informes.map(i => (
             <li key={i.id} className="list-item">
-              <div className="li-head">
-                <strong>{i.titulo || 'Sin título'}</strong>
-                <span className="mono muted">{new Date(i.created_at).toLocaleDateString()}</span>
-              </div>
-              {i.clase?.nombre && <span className="tag">{i.clase.nombre}</span>}
-              <p className="pre">{i.contenido}</p>
+              {editId === i.id ? (
+                <div className="form">
+                  <div className="alert alert-warn">Podés editar este informe una sola vez. Después queda bloqueado.</div>
+                  <label>Título<input value={editTitulo} onChange={e => setEditTitulo(e.target.value)} /></label>
+                  <label>Informe<textarea rows={6} value={editContenido} onChange={e => setEditContenido(e.target.value)} /></label>
+                  <div className="row-actions">
+                    <button className="btn btn-sm btn-primary" onClick={() => guardarEdicion(i.id)} disabled={busy}>Guardar cambio</button>
+                    <button className="btn btn-sm btn-ghost" onClick={cancelarEdicion}>Cancelar</button>
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div className="li-head">
+                    <strong>{i.titulo || 'Sin título'}</strong>
+                    <span className="mono muted">{new Date(i.created_at).toLocaleDateString()}</span>
+                  </div>
+                  {i.clase?.nombre && <span className="tag">{i.clase.nombre}</span>}
+                  <p className="pre">{i.contenido}</p>
+                  {i.editado
+                    ? <span className="muted mono">Editado · no se puede modificar de nuevo</span>
+                    : <button className="link-btn" onClick={() => editar(i)}>Editar (una sola vez)</button>}
+                </>
+              )}
             </li>
           ))}
         </ul>
